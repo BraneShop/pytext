@@ -116,10 +116,12 @@ class BiLSTMDocAttention(RepresentationBase):
 
         # Attention
         if self.attention:
-            rep = self.attention(rep, seq_lengths)
+            rep, alphas = self.attention(rep, seq_lengths)
 
         # Non-linear projection
         if self.dense:
             rep = self.dense(rep)
 
-        return rep, new_state
+        return rep, new_state, alphas
+
+

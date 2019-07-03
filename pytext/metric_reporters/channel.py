@@ -230,6 +230,57 @@ class TensorBoardChannel(Channel):
                             key + "_gradients", val.grad, epoch
                         )
 
+        if stage == Stage.EVAL: # Only do it in eval; not test.
+            tag = "test" if stage == Stage.TEST else "eval"
+            self.add_attention_images(tag, context, epoch, targets, scores, preds)
+
+
+
+    def add_attention_images(self, tag, context, epoch, targets, scores, preds):
+         """ Output attention highlighting using `imgkit`. Ultimately, this is a terrible approach,
+             but there aren't any better options at the moment.
+
+             See: https://github.com/tensorflow/tensorboard/issues/1740 for an open TensorBoard issue
+                 related to this.
+        """
+        import imgkit
+        from skimage.io import imread
+        import numpy as np
+
+        norm = lambda x: x / np.linalg.norm(x)
+
+        words     = context["words"][0]
+        attention = context["attention"][0]
+
+        # Normalise the attention.
+        # TODO: Make this a configuration parameter.
+        attention = norm( attention - np.min(attention) )
+
+        options = { "crop-w": 600, "crop-h": 400 }
+        # TODO: Use a random filename
+        path = "/tmp/attn.png"
+
+        target = context["target"][0]
+        pred   = context["pred"][0]
+
+        content = f"<span> right={target == pred}, target={target}, pred={pred} </span><br />" 
+
+        for word, factor in zip(words, attention):
+            alpha   = factor
+            rgb     = f"rgba(255, 0, 66, {alpha});"
+            content += f"<span style='background: {rgb}'>{word}</span> "
+
+        imgkit.from_string(f"""
+<p style='font-size: 0.8em; width: 600px; height: 400px;'>
+{content}
+</p>""", path, options=options)
+
+        img = (imread(path, pilmode="RGB") / 255.0).astype(np.float32)
+        img = img.transpose(2, 0, 1)
+
+        self.summary_writer.add_image("Attention", img, epoch)
+
+
     def add_texts(self, tag, metrics):
         """
         Recursively flattens the metrics object and adds each field name and

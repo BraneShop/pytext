@@ -145,6 +145,8 @@ class _NewTask(TaskBase):
     ):
         self.data = data
         self.model = model
+        # HACK
+        self.model.task = self
         # Attempt to build a default metric reporter
         self.metric_reporter = metric_reporter or self.create_metric_reporter(
             self.Config.metric_reporter, model

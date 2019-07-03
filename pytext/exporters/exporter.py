@@ -139,6 +139,14 @@ class ModelExporter(Component):
             final_output_names: list of output names of the blobs to add
         """
         model_out = py_model(*self.dummy_model_input)
+
+        if isinstance(model_out, (list, tuple)):
+            # HACK
+            # Drop all the other output; the convention is that the logits is
+            # first. The point is we should be able to obtain the other layers
+            # with the other magic below with "final output names". I think.
+            model_out = model_out[0]
+
         res = py_model.output_layer.export_to_caffe2(
             workspace, init_net, predict_net, model_out, *output_names
         )

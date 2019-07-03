@@ -440,6 +440,9 @@ class Trainer(TrainerBase):
             with timing.time("model.forward"):
                 logits = model(*inputs)
 
+            if model.decoder.config.has_attention:
+                raise Exception("Unsupported!")
+
             with timing.time("compute loss"):
                 loss = precision.maybe_float(model.get_loss(logits, targets, context))
                 if BatchContext.IGNORE_LOSS in context:
@@ -502,7 +505,7 @@ class TaskTrainer(Trainer):
                     model.accumulate_gradients(False)
 
             with timing.time("model.train_batch"):
-                loss, metric_data = model.train_batch(model, batch, state)
+                loss, metric_data, ctx = model.train_batch(model, batch, state)
                 if sample_size > 1:
                     # gradients averaged per each batch and accumulated across samples.
                     # divide sample_size to let gradients averaged per example
@@ -511,10 +514,17 @@ class TaskTrainer(Trainer):
 
             if report_metric:
                 with timing.time("add metrics"):
+                    reporting_context = {}
+                    for k, v in ctx.items():
+                        reporting_context[k] = v
+
+                    for k, v in metric_reporter.batch_context(raw_batch, batch).items():
+                        reporting_context[k] = v
+
                     metric_reporter.add_batch_stats(
                         batch_id,
                         *metric_data,
-                        **metric_reporter.batch_context(raw_batch, batch),
+                        **reporting_context,
                     )
         # update gradients after #len(samples) forward & backward
         self.optimizer_step(state)

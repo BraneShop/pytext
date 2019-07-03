@@ -169,6 +169,36 @@ class BaseModel(nn.Module, Component):
         model_context = model.arrange_model_context(batch)
         targets = model.arrange_targets(batch)
         model_outputs = model(*model_inputs)
+        ctx = {}
+
+        if model.decoder.config.has_attention:
+            model_outputs, attention = model_outputs
+            if state is not None and state.stage == Stage.EVAL:
+                tokens0   = batch["tokens"][0][0].detach().numpy()
+                target    = batch["labels"][0].detach().numpy()
+                pred      = torch.argmax(model_outputs[0]).detach().numpy()
+                attention = attention[0].detach().numpy()
+                words     = []
+
+                for t in tokens0:
+                    words.append( model.task.data.tensorizers["tokens"].vocab[t] )
+
+                # De-vocab them.
+                target_ = model.task.data.tensorizers["labels"].vocab[target]
+                target = target_
+
+                pred_ = model.task.data.tensorizers["labels"].vocab[pred]
+                pred = pred_
+
+                assert len(words) == len(attention)
+
+                # NOTE: For reasons I don't understand, PyText throws away
+                # things that aren't lists, here. So we wrap everything in a
+                # list.
+                ctx["pred"]      = [ pred      ]
+                ctx["target"]    = [ target    ]
+                ctx["words"]     = [ words     ]
+                ctx["attention"] = [ attention ]
 
         # Add stage to context.
         if state:
@@ -183,7 +213,7 @@ class BaseModel(nn.Module, Component):
 
         # Pack results and return them.
         metric_data = (predictions, targets, scores, loss, model_inputs)
-        return loss, metric_data
+        return loss, metric_data, ctx
 
     def arrange_model_inputs(self, tensor_dict):
         # should raise NotImplementedError after migration is done

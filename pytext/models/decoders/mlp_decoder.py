@@ -8,7 +8,6 @@ import torch.nn as nn
 
 from .decoder_base import DecoderBase
 
-
 class MLPDecoder(DecoderBase):
     """
     `MLPDecoder` implements a fully connected network and uses ReLU as the
@@ -38,6 +37,7 @@ class MLPDecoder(DecoderBase):
         out_dim: Optional[int] = None
         layer_norm: bool = False
         dropout: float = 0.0
+        has_attention: bool = False
 
     def __init__(self, config: Config, in_dim: int, out_dim: int = 0) -> None:
         super().__init__(config)
@@ -60,6 +60,11 @@ class MLPDecoder(DecoderBase):
         self.out_dim = out_dim if out_dim > 0 else config.hidden_dims[-1]
 
     def forward(self, *input: torch.Tensor) -> torch.Tensor:
+        if self.config.has_attention:
+            attention = input[-1]
+            input     = [input[0]]
+            return self.mlp(torch.cat(input, 1)), attention
+
         return self.mlp(torch.cat(input, 1))
 
     def get_decoder(self) -> List[nn.Module]:

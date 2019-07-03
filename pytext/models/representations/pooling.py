@@ -48,7 +48,7 @@ class SelfAttention(Module):
         alphas = self.softmax(alphas)  # (bsz, sent_len)
 
         # (bsz, rep_dim)
-        return torch.bmm(alphas.unsqueeze(1), inputs).squeeze(1)
+        return torch.bmm(alphas.unsqueeze(1), inputs).squeeze(1), alphas
 
 
 class MaxPool(Module):
