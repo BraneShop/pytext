@@ -11,3 +11,5 @@ requests
 scipy
 torchtext
 tensorboardX
+imgkit
+scikit-image
