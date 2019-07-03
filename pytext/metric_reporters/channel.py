@@ -237,7 +237,7 @@ class TensorBoardChannel(Channel):
 
 
     def add_attention_images(self, tag, context, epoch, targets, scores, preds):
-         """ Output attention highlighting using `imgkit`. Ultimately, this is a terrible approach,
+        """ Output attention highlighting using `imgkit`. Ultimately, this is a terrible approach,
              but there aren't any better options at the moment.
 
              See: https://github.com/tensorflow/tensorboard/issues/1740 for an open TensorBoard issue
